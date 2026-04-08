@@ -1,0 +1,13 @@
+{
+  "name": "日本收據記帳",
+  "short_name": "收據記帳",
+  "description": "AI 辨識日文收據自動記帳",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f7f5",
+  "theme_color": "#E8593C",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
