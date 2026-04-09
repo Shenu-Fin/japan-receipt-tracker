@@ -4,9 +4,14 @@ import Link from 'next/link'
 import { Receipt } from '@/lib/types'
 import { getSettings } from '@/lib/settings'
 
+const TRIP_START = new Date('2026-06-02')
+const TRIP_END = new Date('2026-06-06')
+const TRIP_DAYS = 5
+
 export default function Dashboard() {
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [loading, setLoading] = useState(true)
+  const [exchangeRate, setExchangeRate] = useState(0.21)
   const settings = typeof window !== 'undefined' ? getSettings() : null
 
   useEffect(() => {
@@ -14,14 +19,34 @@ export default function Dashboard() {
       setReceipts(Array.isArray(data) ? data : [])
       setLoading(false)
     }).catch(() => setLoading(false))
+    fetch('/api/exchange-rate').then(r => r.json()).then(d => setExchangeRate(d.rate || 0.21))
   }, [])
 
   const today = new Date().toISOString().split('T')[0]
   const todayTotal = receipts.filter(r => r.date === today).reduce((s, r) => s + r.amountJPY, 0)
   const totalJPY = receipts.reduce((s, r) => s + r.amountJPY, 0)
-  const totalTWD = Math.round(totalJPY * (settings?.exchangeRate ?? 0.21))
-  const budget = settings?.budget ?? 300000
-  const budgetUsed = Math.round((totalJPY / budget) * 100)
+  const totalTWD = Math.round(totalJPY * exchangeRate)
+
+  // 旅程日期進度
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  let tripDay = 0
+  let tripPct = 0
+  let tripLabel = ''
+  if (now < TRIP_START) {
+    const daysLeft = Math.ceil((TRIP_START.getTime() - now.getTime()) / 86400000)
+    tripLabel = `出發倒數 ${daysLeft} 天`
+    tripPct = 0
+  } else if (now > TRIP_END) {
+    tripLabel = '旅程已結束'
+    tripPct = 100
+    tripDay = TRIP_DAYS
+  } else {
+    tripDay = Math.floor((now.getTime() - TRIP_START.getTime()) / 86400000) + 1
+    tripPct = Math.round((tripDay / TRIP_DAYS) * 100)
+    tripLabel = `第 ${tripDay} 天 / 共 ${TRIP_DAYS} 天`
+  }
+
   const recentReceipts = receipts.slice(0, 5)
 
   return (
@@ -38,7 +63,7 @@ export default function Dashboard() {
       <div className="card mb-3">
         <p className="text-sm text-gray-500 mb-1">今日花費</p>
         <p className="text-3xl font-bold text-orange-500">¥{todayTotal.toLocaleString()}</p>
-        <p className="text-sm text-gray-400 mt-0.5">≈ NT${Math.round(todayTotal * (settings?.exchangeRate ?? 0.21)).toLocaleString()}</p>
+        <p className="text-sm text-gray-400 mt-0.5">≈ NT${Math.round(todayTotal * exchangeRate).toLocaleString()}</p>
       </div>
 
       {/* 統計卡片 */}
@@ -49,11 +74,12 @@ export default function Dashboard() {
           <p className="text-xs text-gray-400">≈ NT${totalTWD.toLocaleString()}</p>
         </div>
         <div className="card">
-          <p className="text-xs text-gray-500 mb-1">預算進度</p>
-          <p className="text-xl font-bold">{budgetUsed}%</p>
+          <p className="text-xs text-gray-500 mb-1">旅程進度</p>
+          <p className="text-xl font-bold">{tripPct}%</p>
           <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1">
-            <div className="bg-orange-400 h-1.5 rounded-full transition-all" style={{ width: `${Math.min(budgetUsed, 100)}%` }} />
+            <div className="bg-orange-400 h-1.5 rounded-full transition-all" style={{ width: `${tripPct}%` }} />
           </div>
+          <p className="text-xs text-gray-400 mt-1">{tripLabel}</p>
         </div>
       </div>
 
