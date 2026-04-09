@@ -7,8 +7,12 @@ import { getSettings, saveSettings } from '@/lib/settings'
 export default function SettingsPage() {
   const [form, setForm] = useState<AppSettings>(DEFAULT_SETTINGS)
   const [saved, setSaved] = useState(false)
+  const [liveRate, setLiveRate] = useState<number | null>(null)
 
-  useEffect(() => { setForm(getSettings()) }, [])
+  useEffect(() => {
+    setForm(getSettings())
+    fetch('/api/exchange-rate').then(r => r.json()).then(d => setLiveRate(d.rate))
+  }, [])
 
   function update(key: keyof AppSettings, val: any) {
     setForm(f => ({ ...f, [key]: val }))
@@ -36,12 +40,11 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-4">
-        {/* Budget */}
         <div className="card">
           <p className="font-medium mb-3">💰 預算設定</p>
           <div className="space-y-3">
             <div>
-              <p className="text-xs text-gray-400 mb-1">總預算（日幣）</p>
+              <p className="text-xs text-gray-400 mb-1">總預算（日幣，填 0 表示不限）</p>
               <input className="input-field" type="number" value={form.budget} onChange={e => update('budget', Number(e.target.value))} />
             </div>
             <div>
@@ -49,43 +52,31 @@ export default function SettingsPage() {
               <input className="input-field" placeholder="例：現金 + Suica 儲值" value={form.budgetNote} onChange={e => update('budgetNote', e.target.value)} />
             </div>
             <div>
-              <p className="text-xs text-gray-400 mb-1">匯率（¥1 = NT$?）</p>
-              <input className="input-field" type="number" step="0.01" value={form.exchangeRate} onChange={e => update('exchangeRate', Number(e.target.value))} />
-              <p className="text-xs text-gray-400 mt-1">¥1,000 ≈ NT${Math.round(1000 * form.exchangeRate)}</p>
+              <div className="flex justify-between items-center mb-1">
+                <p className="text-xs text-gray-400">匯率（¥1 = NT$?）</p>
+                {liveRate && <span className="text-xs text-green-600">即時匯率：{liveRate.toFixed(4)}</span>}
+              </div>
+              <input className="input-field" type="number" step="0.0001" value={form.exchangeRate} onChange={e => update('exchangeRate', Number(e.target.value))} />
+              <p className="text-xs text-gray-400 mt-1">掃描時自動使用即時匯率，此處為備用</p>
             </div>
           </div>
         </div>
 
-        {/* Trip */}
         <div className="card">
           <p className="font-medium mb-3">🗓 行程設定</p>
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs text-gray-400 mb-1">旅行天數</p>
-              <input className="input-field" type="number" value={form.tripDays} onChange={e => update('tripDays', Number(e.target.value))} />
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">行程表（自動判斷地區）</p>
-              <textarea
-                className="input-field"
-                rows={6}
-                placeholder={'東京 3/15-3/18\n大阪 3/19-3/22\n京都 3/23-3/25'}
-                value={form.tripSchedule}
-                onChange={e => update('tripSchedule', e.target.value)}
-              />
-              <p className="text-xs text-gray-400 mt-1">格式：地區名稱 月/日-月/日（一行一個）</p>
-            </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">旅行天數</p>
+            <input className="input-field" type="number" value={form.tripDays} onChange={e => update('tripDays', Number(e.target.value))} />
           </div>
         </div>
 
-        {/* Users */}
         <div className="card">
-          <p className="font-medium mb-3">👥 旅伴名稱</p>
+          <p className="font-medium mb-3">👥 旅伴名稱（4人）</p>
           <div className="space-y-2">
-            {(form.users || ['旅伴1', '旅伴2', '旅伴3']).map((u, i) => (
+            {[0, 1, 2, 3].map(i => (
               <div key={i}>
                 <p className="text-xs text-gray-400 mb-1">旅伴 {i + 1}</p>
-                <input className="input-field" value={u} onChange={e => updateUser(i, e.target.value)} />
+                <input className="input-field" value={(form.users || [])[i] || ''} onChange={e => updateUser(i, e.target.value)} />
               </div>
             ))}
           </div>

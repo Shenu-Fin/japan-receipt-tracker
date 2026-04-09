@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Receipt, CATEGORIES, PAYMENT_METHODS, REGIONS } from '@/lib/types'
-import { getSettings, getRegionFromDate } from '@/lib/settings'
+import { getSettings } from '@/lib/settings'
 
 export default function ConfirmPage() {
   const router = useRouter()
   const [form, setForm] = useState<Partial<Receipt>>({})
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState(getSettings())
+  const [exchangeRate, setExchangeRate] = useState(0.21)
 
   useEffect(() => {
     const raw = sessionStorage.getItem('scan-result')
@@ -17,14 +18,23 @@ export default function ConfirmPage() {
     const data = JSON.parse(raw)
     const s = getSettings()
     setSettings(s)
+
+    // 自動抓匯率
+    fetch('/api/exchange-rate').then(r => r.json()).then(d => {
+      const rate = d.rate || 0.21
+      setExchangeRate(rate)
+      setForm(prev => ({
+        ...prev,
+        amountTWD: Math.round((prev.amountJPY || data.amountJPY || 0) * rate)
+      }))
+    })
+
     const today = new Date().toISOString().split('T')[0]
-    const date = data.date || today
-    const region = getRegionFromDate(date, s.tripSchedule)
     setForm({
       ...data,
-      date,
-      region,
-      amountTWD: Math.round((data.amountJPY || 0) * s.exchangeRate),
+      date: data.date || today,
+      region: data.region || '其他',
+      amountTWD: Math.round((data.amountJPY || 0) * 0.21),
       user: s.users?.[0] || '旅伴1'
     })
   }, [router])
@@ -32,8 +42,7 @@ export default function ConfirmPage() {
   function update(key: keyof Receipt, val: any) {
     setForm(f => {
       const next = { ...f, [key]: val }
-      if (key === 'amountJPY') next.amountTWD = Math.round(Number(val) * settings.exchangeRate)
-      if (key === 'date') next.region = getRegionFromDate(val, settings.tripSchedule) as any
+      if (key === 'amountJPY') next.amountTWD = Math.round(Number(val) * exchangeRate)
       return next
     })
   }
@@ -44,7 +53,7 @@ export default function ConfirmPage() {
       const res = await fetch('/api/notion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify({ ...form, amountTWD: Math.round((form.amountJPY || 0) * exchangeRate) })
       })
       if (!res.ok) throw new Error('儲存失敗')
       sessionStorage.removeItem('scan-result')
@@ -65,7 +74,7 @@ export default function ConfirmPage() {
       </div>
 
       <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-4 text-sm text-orange-700">
-        🤖 AI 已辨識完成，請確認並修正錯誤後儲存
+        🤖 AI 已辨識完成，請確認後儲存
       </div>
 
       <div className="space-y-3">
@@ -87,7 +96,7 @@ export default function ConfirmPage() {
             <span className="text-gray-400">¥</span>
             <input className="input-field" type="number" value={form.amountJPY || ''} onChange={e => update('amountJPY', Number(e.target.value))} />
           </div>
-          <p className="text-xs text-gray-400 mt-1">≈ NT${(form.amountTWD || 0).toLocaleString()}</p>
+          <p className="text-xs text-gray-400 mt-1">≈ NT${Math.round((form.amountJPY || 0) * exchangeRate).toLocaleString()}（即時匯率）</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -96,8 +105,8 @@ export default function ConfirmPage() {
             <input className="input-field text-sm" type="date" value={form.date || ''} onChange={e => update('date', e.target.value)} />
           </div>
           <div className="card">
-            <p className="text-xs text-gray-400 mb-1">地區</p>
-            <select className="select-field text-sm" value={form.region || ''} onChange={e => update('region', e.target.value)}>
+            <p className="text-xs text-gray-400 mb-1">地區（AI判斷）</p>
+            <select className="select-field text-sm" value={form.region || ''} onChange={e => update('region', e.target.value as any)}>
               {REGIONS.map(r => <option key={r}>{r}</option>)}
             </select>
           </div>
@@ -105,7 +114,7 @@ export default function ConfirmPage() {
 
         <div className="grid grid-cols-2 gap-3">
           <div className="card">
-            <p className="text-xs text-gray-400 mb-1">類別</p>
+            <p className="text-xs text-gray-400 mb-1">類別（AI判斷）</p>
             <select className="select-field text-sm" value={form.category || ''} onChange={e => update('category', e.target.value as any)}>
               {CATEGORIES.map(c => <option key={c}>{c}</option>)}
             </select>
@@ -119,15 +128,15 @@ export default function ConfirmPage() {
         </div>
 
         <div className="card">
-          <p className="text-xs text-gray-400 mb-1">誰付的</p>
+          <p className="text-xs text-gray-400 mb-1">誰付的 ✏️</p>
           <select className="select-field" value={form.user || ''} onChange={e => update('user', e.target.value)}>
-            {(settings.users || ['旅伴1', '旅伴2', '旅伴3']).map(u => <option key={u}>{u}</option>)}
+            {(settings.users || ['旅伴1', '旅伴2', '旅伴3', '旅伴4']).map(u => <option key={u}>{u}</option>)}
           </select>
         </div>
 
         {form.note && (
           <div className="card">
-            <p className="text-xs text-gray-400 mb-1">備註（稅制等）</p>
+            <p className="text-xs text-gray-400 mb-1">備註</p>
             <p className="text-sm text-gray-600">{form.note}</p>
           </div>
         )}

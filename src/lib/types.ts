@@ -33,10 +33,10 @@ export const PAYMENT_METHODS: PaymentMethod[] = ['現金', '信用卡', 'Suica',
 export const REGIONS: Region[] = ['東京', '大阪', '京都', '名古屋', '北海道', '福岡', '其他']
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  budget: 300000,
+  budget: 0,
   budgetNote: '',
   exchangeRate: 0.21,
   tripDays: 14,
   tripSchedule: '',
-  users: ['旅伴1', '旅伴2', '旅伴3']
+  users: ['旅伴1', '旅伴2', '旅伴3', '旅伴4']
 }
