@@ -2,47 +2,40 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Receipt } from '@/lib/types'
-import { getSettings } from '@/lib/settings'
 
 export default function StatsPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [loading, setLoading] = useState(true)
   const [filterUser, setFilterUser] = useState('')
-  const settings = getSettings()
+  const [exchangeRate, setExchangeRate] = useState(0.21)
 
   useEffect(() => {
     fetch('/api/notion').then(r => r.json()).then(data => {
       setReceipts(Array.isArray(data) ? data : [])
       setLoading(false)
     }).catch(() => setLoading(false))
+    fetch('/api/exchange-rate').then(r => r.json()).then(d => setExchangeRate(d.rate || 0.21))
   }, [])
 
   const data = filterUser ? receipts.filter(r => r.user === filterUser) : receipts
-  const total = data.reduce((s, r) => s + r.amountJPY, 0)
-  const totalTWD = Math.round(total * settings.exchangeRate)
-  const budget = settings.budget || 300000
-  const budgetPct = Math.min(Math.round((total / budget) * 100), 100)
+  const totalJPY = data.reduce((s, r) => s + r.amountJPY, 0)
+  const totalTWD = Math.round(totalJPY * exchangeRate)
 
-  // By category
   const byCat: Record<string, number> = {}
   data.forEach(r => { byCat[r.category] = (byCat[r.category] || 0) + r.amountJPY })
   const catList = Object.entries(byCat).sort((a, b) => b[1] - a[1])
 
-  // By region
   const byRegion: Record<string, number> = {}
   data.forEach(r => { byRegion[r.region] = (byRegion[r.region] || 0) + r.amountJPY })
   const regionList = Object.entries(byRegion).sort((a, b) => b[1] - a[1])
 
-  // By payment
   const byPay: Record<string, number> = {}
   data.forEach(r => { byPay[r.paymentMethod] = (byPay[r.paymentMethod] || 0) + r.amountJPY })
   const payList = Object.entries(byPay).sort((a, b) => b[1] - a[1])
 
-  // By user
   const byUser: Record<string, number> = {}
   receipts.forEach(r => { byUser[r.user] = (byUser[r.user] || 0) + r.amountJPY })
 
-  // Daily trend (last 10 days)
   const byDay: Record<string, number> = {}
   data.forEach(r => { byDay[r.date] = (byDay[r.date] || 0) + r.amountJPY })
   const dayList = Object.entries(byDay).sort((a, b) => a[0].localeCompare(b[0])).slice(-10)
@@ -70,28 +63,27 @@ export default function StatsPage() {
         ))}
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="card col-span-2">
-          <p className="text-sm text-gray-500 mb-1">總花費</p>
-          <p className="text-3xl font-bold text-orange-500">¥{total.toLocaleString()}</p>
-          <p className="text-sm text-gray-400">≈ NT${totalTWD.toLocaleString()}</p>
-          <div className="mt-3">
-            <div className="flex justify-between text-xs text-gray-400 mb-1">
-              <span>預算進度</span><span>{budgetPct}% / ¥{budget.toLocaleString()}</span>
-            </div>
-            <div className="w-full bg-gray-100 rounded-full h-2">
-              <div className="h-2 rounded-full transition-all" style={{ width: `${budgetPct}%`, background: budgetPct > 90 ? '#EF4444' : budgetPct > 70 ? '#F97316' : '#10B981' }} />
-            </div>
-          </div>
+      {/* 總花費 — 日幣 + 台幣 都顯示 */}
+      <div className="card mb-4">
+        <p className="text-sm text-gray-500 mb-1">旅程總花費</p>
+        <p className="text-3xl font-bold text-orange-500">¥{totalJPY.toLocaleString()}</p>
+        <div className="flex items-center gap-2 mt-2 bg-orange-50 rounded-xl px-4 py-2">
+          <span className="text-sm text-orange-600">換算台幣</span>
+          <span className="text-2xl font-bold text-orange-600 ml-auto">NT${totalTWD.toLocaleString()}</span>
         </div>
+        <p className="text-xs text-gray-400 mt-1">即時匯率 ¥1 ≈ NT${exchangeRate.toFixed(4)}</p>
+      </div>
+
+      {/* 統計數字 */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="card text-center">
           <p className="text-xs text-gray-400">筆數</p>
           <p className="text-2xl font-bold">{data.length}</p>
         </div>
         <div className="card text-center">
           <p className="text-xs text-gray-400">平均每筆</p>
-          <p className="text-2xl font-bold">¥{data.length ? Math.round(total / data.length).toLocaleString() : 0}</p>
+          <p className="text-xl font-bold">¥{data.length ? Math.round(totalJPY / data.length).toLocaleString() : 0}</p>
+          <p className="text-xs text-gray-400">NT${data.length ? Math.round(totalTWD / data.length).toLocaleString() : 0}</p>
         </div>
       </div>
 
@@ -102,8 +94,8 @@ export default function StatsPage() {
           <div className="flex items-end gap-1 h-20">
             {dayList.map(([date, amt]) => (
               <div key={date} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full bg-orange-400 rounded-t" style={{ height: `${Math.round((amt / maxDay) * 64)}px` }} title={`¥${amt.toLocaleString()}`} />
-                <span className="text-xs text-gray-400" style={{ fontSize: 9 }}>{date.slice(5)}</span>
+                <div className="w-full bg-orange-400 rounded-t" style={{ height: `${Math.round((amt / maxDay) * 64)}px` }} />
+                <span className="text-gray-400" style={{ fontSize: 9 }}>{date.slice(5)}</span>
               </div>
             ))}
           </div>
@@ -119,10 +111,12 @@ export default function StatsPage() {
               <div key={cat}>
                 <div className="flex justify-between text-sm mb-1">
                   <span>{cat}</span>
-                  <span className="font-medium">¥{amt.toLocaleString()} ({Math.round((amt / total) * 100)}%)</span>
+                  <span className="font-medium">
+                    ¥{amt.toLocaleString()} · NT${Math.round(amt * exchangeRate).toLocaleString()} ({Math.round((amt / totalJPY) * 100)}%)
+                  </span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div className="h-2 rounded-full" style={{ width: `${(amt / total) * 100}%`, background: catColors[cat] || '#9CA3AF' }} />
+                  <div className="h-2 rounded-full" style={{ width: `${(amt / totalJPY) * 100}%`, background: catColors[cat] || '#9CA3AF' }} />
                 </div>
               </div>
             ))}
@@ -130,7 +124,7 @@ export default function StatsPage() {
         </div>
       )}
 
-      {/* Region breakdown */}
+      {/* Region */}
       {regionList.length > 0 && (
         <div className="card mb-4">
           <p className="font-medium mb-3">地區分布</p>
@@ -140,9 +134,12 @@ export default function StatsPage() {
                 <span className="text-sm">{region}</span>
                 <div className="flex items-center gap-2">
                   <div className="w-20 bg-gray-100 rounded-full h-1.5">
-                    <div className="h-1.5 rounded-full bg-blue-400" style={{ width: `${(amt / total) * 100}%` }} />
+                    <div className="h-1.5 rounded-full bg-blue-400" style={{ width: `${(amt / totalJPY) * 100}%` }} />
                   </div>
-                  <span className="text-sm font-medium w-20 text-right">¥{amt.toLocaleString()}</span>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">¥{amt.toLocaleString()}</p>
+                    <p className="text-xs text-gray-400">NT${Math.round(amt * exchangeRate).toLocaleString()}</p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -150,7 +147,7 @@ export default function StatsPage() {
         </div>
       )}
 
-      {/* Payment method */}
+      {/* Payment */}
       {payList.length > 0 && (
         <div className="card mb-4">
           <p className="font-medium mb-3">付款方式</p>
@@ -159,6 +156,7 @@ export default function StatsPage() {
               <div key={pay} className="bg-gray-50 rounded-xl px-3 py-2 text-center">
                 <p className="text-xs text-gray-400">{pay}</p>
                 <p className="font-medium text-sm">¥{amt.toLocaleString()}</p>
+                <p className="text-xs text-gray-400">NT${Math.round(amt * exchangeRate).toLocaleString()}</p>
               </div>
             ))}
           </div>
@@ -172,7 +170,10 @@ export default function StatsPage() {
           {Object.entries(byUser).sort((a, b) => b[1] - a[1]).map(([user, amt]) => (
             <div key={user} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
               <span className="text-sm">{user}</span>
-              <span className="font-medium">¥{amt.toLocaleString()}</span>
+              <div className="text-right">
+                <p className="font-medium">¥{amt.toLocaleString()}</p>
+                <p className="text-xs text-gray-400">NT${Math.round(amt * exchangeRate).toLocaleString()}</p>
+              </div>
             </div>
           ))}
         </div>
