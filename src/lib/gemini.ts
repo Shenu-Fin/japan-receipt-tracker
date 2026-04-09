@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash']
+const MODELS = ['gemini-1.5-flash']
 
 const PROMPT = `你是一個專業的日本收據辨識助手。請分析這張收據圖片，回傳以下 JSON 格式（只回傳 JSON，不要其他文字）：
 
