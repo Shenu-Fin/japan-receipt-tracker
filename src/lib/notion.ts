@@ -91,7 +91,7 @@ export async function addReceipt(r: Receipt) {
   const categoryPageId = CATEGORY_PAGE_IDS[r.category]
 
   const props: Record<string, any> = {
-    '支出項目': { title: [{ text: { content: r.items || r.storeName } }] },
+    '支出項目': { title: [{ text: { content: (r as any).shortTitle || r.storeName || r.items || '' } }] },
     '支出金額': { number: r.amountJPY },
     '消費日期': { date: { start: r.date } },
     '付款人':   { rich_text: [{ text: { content: r.user } }] },

@@ -8,6 +8,7 @@ import { getSettings } from '@/lib/settings'
 export default function ConfirmPage() {
   const router = useRouter()
   const [form, setForm] = useState<Partial<Receipt>>({})
+  const [shortTitle, setShortTitle] = useState('')
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState(getSettings())
   const [exchangeRate, setExchangeRate] = useState(0.21)
@@ -19,7 +20,6 @@ export default function ConfirmPage() {
     const s = getSettings()
     setSettings(s)
 
-    // 自動抓匯率
     fetch('/api/exchange-rate').then(r => r.json()).then(d => {
       const rate = d.rate || 0.21
       setExchangeRate(rate)
@@ -30,6 +30,7 @@ export default function ConfirmPage() {
     })
 
     const today = new Date().toISOString().split('T')[0]
+    setShortTitle(data.displayTitle || data.shortTitle || data.storeName || '')
     setForm({
       ...data,
       date: data.date || today,
@@ -50,10 +51,15 @@ export default function ConfirmPage() {
   async function save() {
     setSaving(true)
     try {
+      const payload = {
+        ...form,
+        shortTitle,
+        amountTWD: Math.round((form.amountJPY || 0) * exchangeRate)
+      }
       const res = await fetch('/api/notion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, amountTWD: Math.round((form.amountJPY || 0) * exchangeRate) })
+        body: JSON.stringify(payload)
       })
       if (!res.ok) throw new Error('儲存失敗')
       sessionStorage.removeItem('scan-result')
@@ -79,13 +85,18 @@ export default function ConfirmPage() {
 
       <div className="space-y-3">
         <div className="card">
+          <p className="text-xs text-gray-400 mb-1">支出項目（5字內簡稱）</p>
+          <input className="input-field" value={shortTitle} onChange={e => setShortTitle(e.target.value)} placeholder="例：便利商店" />
+        </div>
+
+        <div className="card">
           <p className="text-xs text-gray-400 mb-1">店名（繁中）</p>
           <input className="input-field" value={form.storeName || ''} onChange={e => update('storeName', e.target.value)} />
           {form.storeNameJa && <p className="text-xs text-gray-400 mt-1">日文：{form.storeNameJa}</p>}
         </div>
 
         <div className="card">
-          <p className="text-xs text-gray-400 mb-1">商品（繁中）</p>
+          <p className="text-xs text-gray-400 mb-1">商品明細</p>
           <input className="input-field" value={form.items || ''} onChange={e => update('items', e.target.value)} />
           {form.itemsJa && <p className="text-xs text-gray-400 mt-1">日文：{form.itemsJa}</p>}
         </div>
