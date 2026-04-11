@@ -35,7 +35,7 @@ export async function getReceipts(): Promise<Receipt[]> {
         category: p['類別']?.select?.name || '其他',
         paymentMethod: p['支付方式']?.rich_text?.[0]?.plain_text || '現金',
         date: p['消費日期']?.date?.start || '',
-        region: p['地區']?.rich_text?.[0]?.plain_text || '',
+        region: p['地區']?.rich_text?.[0]?.plain_text || p['地區']?.select?.name || '',
         user: p['付款人']?.rich_text?.[0]?.plain_text || '',
         note: p['稅制']?.rich_text?.[0]?.plain_text || ''
       })
@@ -55,25 +55,32 @@ export async function addReceipt(r: Receipt) {
 
   const categoryMap: Record<string, string> = {
     '餐飲': '飲食類', '交通': '交通類', '住宿': '住宿類',
-    '門票': '娛樂類', '購物': '購物類', '藥品': '藥品類', '其他': '其他類'
+    '門票': '娛樂類', '購物': '購物類', '藥品': '藥品類', '其他': '其他類',
+    '景點': '景點類'
+  }
+
+  const props: Record<string, any> = {
+    '支出項目': { title: [{ text: { content: r.items || r.storeName } }] },
+    '支出金額': { number: r.amountJPY },
+    '類別':     { select: { name: categoryMap[r.category] || r.category } },
+    '消費日期': { date: { start: r.date } },
+    '付款人':   { rich_text: [{ text: { content: r.user } }] },
+    '商品中文': { rich_text: [{ text: { content: r.items } }] },
+    '商品日文': { rich_text: [{ text: { content: r.itemsJa } }] },
+    '商店名稱': { rich_text: [{ text: { content: r.storeName } }] },
+    '商店日文': { rich_text: [{ text: { content: r.storeNameJa } }] },
+    '支付方式': { rich_text: [{ text: { content: r.paymentMethod } }] },
+    '稅制':     { rich_text: [{ text: { content: r.taxType } }] },
+  }
+
+  // 地區欄位：先試 rich_text，如果是 select 就用 select
+  if (r.region) {
+    props['地區'] = { rich_text: [{ text: { content: r.region } }] }
   }
 
   return (notion as any).pages.create({
     parent: { database_id: DB },
-    properties: {
-      '支出項目': { title: [{ text: { content: r.items || r.storeName } }] },
-      '支出金額': { number: r.amountJPY },
-      '類別':     { select: { name: categoryMap[r.category] || r.category } },
-      '消費日期': { date: { start: r.date } },
-      '付款人':   { rich_text: [{ text: { content: r.user } }] },
-      '商品中文': { rich_text: [{ text: { content: r.items } }] },
-      '商品日文': { rich_text: [{ text: { content: r.itemsJa } }] },
-      '商店名稱': { rich_text: [{ text: { content: r.storeName } }] },
-      '商店日文': { rich_text: [{ text: { content: r.storeNameJa } }] },
-      '地區':     { rich_text: [{ text: { content: r.region } }] },
-      '支付方式': { rich_text: [{ text: { content: r.paymentMethod } }] },
-      '稅制':     { rich_text: [{ text: { content: r.taxType } }] },
-    }
+    properties: props
   })
 }
 
@@ -81,7 +88,8 @@ export async function updateReceipt(id: string, r: Partial<Receipt>) {
   invalidateCache()
   const categoryMap: Record<string, string> = {
     '餐飲': '飲食類', '交通': '交通類', '住宿': '住宿類',
-    '門票': '娛樂類', '購物': '購物類', '藥品': '藥品類', '其他': '其他類'
+    '門票': '娛樂類', '購物': '購物類', '藥品': '藥品類', '其他': '其他類',
+    '景點': '景點類'
   }
   const props: Record<string, any> = {}
   if (r.items || r.storeName) props['支出項目'] = { title: [{ text: { content: r.items || r.storeName } }] }
