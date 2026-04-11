@@ -14,7 +14,7 @@ export async function getReceipts(): Promise<Receipt[]> {
   let cursor: string | undefined
 
   do {
-    const res = await notion.databases.query({
+    const res = await (notion as any).databases.query({
       database_id: DB,
       start_cursor: cursor,
       sorts: [{ property: '消費日期', direction: 'descending' }]
@@ -58,7 +58,7 @@ export async function addReceipt(r: Receipt) {
     '門票': '娛樂類', '購物': '購物類', '藥品': '藥品類', '其他': '其他類'
   }
 
-  return notion.pages.create({
+  return (notion as any).pages.create({
     parent: { database_id: DB },
     properties: {
       '支出項目': { title: [{ text: { content: r.items || r.storeName } }] },
@@ -96,10 +96,10 @@ export async function updateReceipt(id: string, r: Partial<Receipt>) {
   if (r.region)        props['地區']     = { rich_text: [{ text: { content: r.region } }] }
   if (r.paymentMethod) props['支付方式'] = { rich_text: [{ text: { content: r.paymentMethod } }] }
   if (r.taxType)       props['稅制']     = { rich_text: [{ text: { content: r.taxType } }] }
-  return notion.pages.update({ page_id: id, properties: props })
+  return (notion as any).pages.update({ page_id: id, properties: props })
 }
 
 export async function deleteReceipt(id: string) {
   invalidateCache()
-  return notion.pages.update({ page_id: id, archived: true })
+  return (notion as any).pages.update({ page_id: id, archived: true })
 }
