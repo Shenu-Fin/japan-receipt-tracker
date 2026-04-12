@@ -1,152 +1,177 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Receipt, CATEGORIES, REGIONS } from '@/lib/types'
+import { Receipt } from '@/lib/types'
+
+const CAT_COLOR: Record<string, string> = {
+  '餐飲':'background:#FDF3E3;color:#9A6020','交通':'background:#E8F0FB;color:#2E5BA8',
+  '住宿':'background:#EAF3DE;color:#3B6D11','購物':'background:#FBEAF0;color:#9C2A5A',
+  '門票':'background:#F0EDFB;color:#5B3DB8','景點':'background:#F0EDFB;color:#5B3DB8',
+  '藥品':'background:#FCEBEB;color:#A32D2D','其他':'background:#F5F0EB;color:#6B4C35',
+}
+
+const CATS = ['全部','餐飲','交通','購物','門票','住宿','藥品','景點','其他']
+const REGIONS = ['所有地區','東京','大阪','京都','名古屋','北海道','福岡','其他']
 
 export default function HistoryPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [loading, setLoading] = useState(true)
-  const [filterCat, setFilterCat] = useState('')
-  const [filterRegion, setFilterRegion] = useState('')
-  const [editing, setEditing] = useState<Receipt | null>(null)
-  const [saving, setSaving] = useState(false)
+  const [cat, setCat] = useState('全部')
+  const [region, setRegion] = useState('所有地區')
+  const [exchangeRate, setExchangeRate] = useState(0.21)
+  const [detail, setDetail] = useState<Receipt | null>(null)
+  const [deleting, setDeleting] = useState('')
 
   useEffect(() => {
-    fetch('/api/notion').then(r => r.json()).then(data => {
-      setReceipts(Array.isArray(data) ? data : [])
-      setLoading(false)
-    }).catch(() => setLoading(false))
+    load()
+    fetch('/api/exchange-rate').then(r => r.json()).then(d => setExchangeRate(d.rate || 0.21))
   }, [])
 
+  function load() {
+    setLoading(true)
+    fetch('/api/notion').then(r => r.json()).then(d => {
+      setReceipts(Array.isArray(d) ? d : [])
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }
+
+  async function del(id: string) {
+    if (!confirm('確定刪除？')) return
+    setDeleting(id)
+    await fetch('/api/notion/update', { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id}) })
+    setDeleting('')
+    setDetail(null)
+    load()
+  }
+
   const filtered = receipts.filter(r =>
-    (!filterCat || r.category === filterCat) &&
-    (!filterRegion || r.region === filterRegion)
+    (cat === '全部' || r.category === cat) &&
+    (region === '所有地區' || r.region === region)
   )
 
-  async function handleDelete(id: string) {
-    if (!confirm('確定要刪除這筆記錄？')) return
-    await fetch('/api/notion/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, action: 'delete' })
-    })
-    setReceipts(r => r.filter(x => x.id !== id))
-  }
+  // 細項頁
+  if (detail) {
+    return (
+      <div className="pb-24 px-4 pt-6">
+        <div className="flex items-center gap-3 mb-5">
+          <button onClick={() => setDetail(null)} className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-base" style={{border:'0.5px solid #EDE5D8',color:'#6B4C35'}}>←</button>
+          <h1 className="text-xl font-bold" style={{color:'#2C1F14'}}>支出細項</h1>
+        </div>
 
-  async function handleSave() {
-    if (!editing?.id) return
-    setSaving(true)
-    await fetch('/api/notion/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: editing.id, data: editing })
-    })
-    setReceipts(r => r.map(x => x.id === editing.id ? editing : x))
-    setEditing(null)
-    setSaving(false)
-  }
+        {/* 頂部橘色卡頭 */}
+        <div style={{borderRadius:'16px',overflow:'hidden',border:'0.5px solid #EDE5D8',marginBottom:'12px'}}>
+          <div style={{background:'#D4622A',padding:'16px'}}>
+            <p className="text-xs mb-1" style={{color:'rgba(255,255,255,0.7)'}}>{detail.category}</p>
+            <p className="text-lg font-bold text-white">{detail.items || detail.storeName}</p>
+            <p className="text-3xl font-bold text-white mt-1" style={{letterSpacing:'-0.5px'}}>¥{detail.amountJPY.toLocaleString()}</p>
+            <p className="text-xs mt-1" style={{color:'rgba(255,255,255,0.7)'}}>≈ NT${Math.round(detail.amountJPY * exchangeRate).toLocaleString()}</p>
+          </div>
+          <div style={{background:'white'}}>
+            {[
+              ['消費日期', detail.date],
+              ['商店名稱', detail.storeName],
+              detail.storeNameJa && ['商店日文', detail.storeNameJa],
+              ['商品明細', detail.items],
+              detail.itemsJa && ['商品日文', detail.itemsJa],
+              ['付款人', detail.user],
+              ['支付方式', detail.paymentMethod],
+              ['地區', detail.region],
+              detail.taxType && ['稅制', detail.taxType],
+            ].filter(Boolean).map(([k, v]: any) => v && (
+              <div key={k} className="flex justify-between px-4 py-2.5" style={{borderBottom:'0.5px solid #F5F0EB',fontSize:'13px'}}>
+                <span style={{color:'#B8A898'}}>{k}</span>
+                <span className="font-medium" style={{color:'#2C1F14'}}>{v}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 p-3" style={{background:'#FBF8F4',borderTop:'0.5px solid #EDE5D8'}}>
+            <Link href={`/add?edit=${detail.id}`} className="flex-1 py-2.5 rounded-xl text-center text-sm font-medium" style={{background:'white',border:'0.5px solid #EDE5D8',color:'#6B4C35'}}>✏️ 編輯</Link>
+            <button onClick={() => del(detail.id!)} disabled={deleting === detail.id} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{background:'white',border:'0.5px solid #F5C6C1',color:'#C0392B'}}>
+              {deleting === detail.id ? '刪除中...' : '🗑 刪除'}
+            </button>
+          </div>
+        </div>
 
-  const catColors: Record<string, string> = {
-    '餐飲': 'bg-orange-100 text-orange-700',
-    '交通': 'bg-blue-100 text-blue-700',
-    '購物': 'bg-pink-100 text-pink-700',
-    '門票': 'bg-purple-100 text-purple-700',
-    '住宿': 'bg-green-100 text-green-700',
-    '藥品': 'bg-red-100 text-red-700',
-    '其他': 'bg-gray-100 text-gray-600'
+        <nav className="nav-bar">
+          <Link href="/" className="flex flex-col items-center gap-0.5" style={{color:'#B8A898'}}><span className="text-xl">🏠</span><span className="text-xs">首頁</span></Link>
+          <Link href="/history" className="flex flex-col items-center gap-0.5" style={{color:'#D4622A'}}><span className="text-xl">📋</span><span className="text-xs font-medium">記錄</span></Link>
+          <Link href="/scan" className="flex flex-col items-center gap-0.5" style={{color:'#B8A898'}}><span className="text-xl">📷</span><span className="text-xs">記帳</span></Link>
+          <Link href="/stats" className="flex flex-col items-center gap-0.5" style={{color:'#B8A898'}}><span className="text-xl">📊</span><span className="text-xs">統計</span></Link>
+          <Link href="/settings" className="flex flex-col items-center gap-0.5" style={{color:'#B8A898'}}><span className="text-xl">⚙️</span><span className="text-xs">設定</span></Link>
+        </nav>
+      </div>
+    )
   }
 
   return (
     <div className="pb-24 px-4 pt-6">
-      <div className="flex items-center gap-3 mb-4">
-        <Link href="/" className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm">←</Link>
-        <h1 className="text-xl font-bold">歷史記錄</h1>
-        <span className="ml-auto text-sm text-gray-400">{filtered.length} 筆</span>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold" style={{color:'#2C1F14'}}>歷史記錄</h1>
+        <span className="text-sm" style={{color:'#B8A898'}}>{filtered.length} 筆</span>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-        <button onClick={() => setFilterCat('')} className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${!filterCat ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}>全部</button>
-        {CATEGORIES.map(c => (
-          <button key={c} onClick={() => setFilterCat(c === filterCat ? '' : c)} className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${filterCat === c ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}>{c}</button>
+      {/* 類別篩選 */}
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-2 no-scrollbar">
+        {CATS.map(c => (
+          <button key={c} onClick={() => setCat(c)}
+            className="px-3 py-1.5 rounded-full text-sm whitespace-nowrap flex-shrink-0 font-medium"
+            style={cat===c ? {background:'#D4622A',color:'white'} : {background:'white',color:'#6B4C35',border:'0.5px solid #EDE5D8'}}>
+            {c}
+          </button>
         ))}
       </div>
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-        <button onClick={() => setFilterRegion('')} className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${!filterRegion ? 'bg-gray-700 text-white' : 'bg-white text-gray-600'}`}>所有地區</button>
+
+      {/* 地區篩選 */}
+      <div className="flex gap-2 overflow-x-auto pb-3 mb-3 no-scrollbar">
         {REGIONS.map(r => (
-          <button key={r} onClick={() => setFilterRegion(r === filterRegion ? '' : r)} className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${filterRegion === r ? 'bg-gray-700 text-white' : 'bg-white text-gray-600'}`}>{r}</button>
+          <button key={r} onClick={() => setRegion(r)}
+            className="px-3 py-1.5 rounded-full text-sm whitespace-nowrap flex-shrink-0 font-medium"
+            style={region===r ? {background:'#2C1F14',color:'white'} : {background:'white',color:'#6B4C35',border:'0.5px solid #EDE5D8'}}>
+            {r}
+          </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="card text-center py-8 text-gray-400">載入中...</div>
+        <div className="card text-center py-8" style={{color:'#B8A898'}}>載入中...</div>
       ) : filtered.length === 0 ? (
-        <div className="card text-center py-8 text-gray-400">沒有符合的記錄</div>
+        <div className="card text-center py-8" style={{color:'#B8A898'}}>沒有符合的記錄</div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {filtered.map((r, i) => (
-            <div key={r.id || i} className="card">
-              <div className="flex justify-between items-start">
+            <div key={r.id||i} className="card">
+              <div className="flex justify-between items-start mb-2">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="font-medium truncate">{r.storeName || r.items}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${catColors[r.category] || 'bg-gray-100 text-gray-600'}`}>{r.category}</span>
+                  <p className="font-semibold text-sm" style={{color:'#2C1F14'}}>{r.items || r.storeName}</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="text-xs" style={{color:'#B8A898'}}>{r.date}</span>
+                    <span className="tag" style={CAT_COLOR[r.category] || CAT_COLOR['其他']}>{r.category}</span>
+                    {r.user && <span className="text-xs" style={{color:'#B8A898'}}>· {r.user}</span>}
                   </div>
-                  <p className="text-xs text-gray-400">{r.date} · {r.region} · {r.user}</p>
-                  {r.items && r.storeName && <p className="text-xs text-gray-400 mt-0.5 truncate">{r.items}</p>}
                 </div>
-                <div className="text-right ml-3 shrink-0">
-                  <p className="font-bold text-orange-500">¥{r.amountJPY.toLocaleString()}</p>
-                  <p className="text-xs text-gray-400">{r.paymentMethod}</p>
+                <div className="text-right ml-3">
+                  <p className="font-bold text-sm" style={{color:'#D4622A'}}>¥{r.amountJPY.toLocaleString()}</p>
+                  <p className="text-xs mt-0.5" style={{color:'#B8A898'}}>NT${Math.round(r.amountJPY * exchangeRate).toLocaleString()}</p>
                 </div>
               </div>
-              <div className="flex gap-2 mt-2">
-                <button onClick={() => setEditing({ ...r })} className="text-xs text-blue-500 bg-blue-50 px-3 py-1 rounded-lg">編輯</button>
-                <button onClick={() => r.id && handleDelete(r.id)} className="text-xs text-red-500 bg-red-50 px-3 py-1 rounded-lg">刪除</button>
+              <div className="flex gap-2 pt-2" style={{borderTop:'0.5px solid #F5F0EB'}}>
+                <Link href={`/add?edit=${r.id}`} className="flex-1 py-1.5 rounded-xl text-center text-xs font-medium" style={{background:'#FBF8F4',color:'#6B4C35'}}>編輯</Link>
+                <button onClick={() => setDetail(r)} className="flex-1 py-1.5 rounded-xl text-xs font-medium" style={{background:'#FDF3EC',color:'#D4622A'}}>查看細項</button>
+                <button onClick={() => del(r.id!)} disabled={deleting===r.id} className="flex-1 py-1.5 rounded-xl text-xs font-medium" style={{background:'#FEF0EE',color:'#C0392B'}}>
+                  {deleting===r.id ? '...' : '刪除'}
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Edit Modal */}
-      {editing && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-          <div className="bg-white w-full max-w-xl mx-auto rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto">
-            <h2 className="font-bold text-lg mb-4">編輯記錄</h2>
-            <div className="space-y-3">
-              <div><p className="text-xs text-gray-400 mb-1">店名</p>
-                <input className="input-field" value={editing.storeName} onChange={e => setEditing(x => x ? {...x, storeName: e.target.value} : x)} /></div>
-              <div><p className="text-xs text-gray-400 mb-1">商品</p>
-                <input className="input-field" value={editing.items} onChange={e => setEditing(x => x ? {...x, items: e.target.value} : x)} /></div>
-              <div><p className="text-xs text-gray-400 mb-1">金額（日幣）</p>
-                <input className="input-field" type="number" value={editing.amountJPY} onChange={e => setEditing(x => x ? {...x, amountJPY: Number(e.target.value)} : x)} /></div>
-              <div><p className="text-xs text-gray-400 mb-1">日期</p>
-                <input className="input-field" type="date" value={editing.date} onChange={e => setEditing(x => x ? {...x, date: e.target.value} : x)} /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><p className="text-xs text-gray-400 mb-1">類別</p>
-                  <select className="select-field text-sm" value={editing.category} onChange={e => setEditing(x => x ? {...x, category: e.target.value as any} : x)}>
-                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                  </select></div>
-                <div><p className="text-xs text-gray-400 mb-1">地區</p>
-                  <select className="select-field text-sm" value={editing.region} onChange={e => setEditing(x => x ? {...x, region: e.target.value as any} : x)}>
-                    {REGIONS.map(r => <option key={r}>{r}</option>)}
-                  </select></div>
-              </div>
-            </div>
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setEditing(null)} className="btn-secondary">取消</button>
-              <button onClick={handleSave} disabled={saving} className="btn-primary">{saving ? '儲存中...' : '儲存'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <nav className="nav-bar">
-        <Link href="/" className="flex flex-col items-center text-gray-400"><span className="text-xl">🏠</span><span className="text-xs mt-0.5">首頁</span></Link>
-        <Link href="/scan" className="flex flex-col items-center text-gray-400"><span className="text-xl">📷</span><span className="text-xs mt-0.5">掃描</span></Link>
-        <Link href="/history" className="flex flex-col items-center text-orange-500"><span className="text-xl">📋</span><span className="text-xs mt-0.5">記錄</span></Link>
-        <Link href="/stats" className="flex flex-col items-center text-gray-400"><span className="text-xl">📊</span><span className="text-xs mt-0.5">統計</span></Link>
+        <Link href="/" className="flex flex-col items-center gap-0.5" style={{color:'#B8A898'}}><span className="text-xl">🏠</span><span className="text-xs">首頁</span></Link>
+        <Link href="/history" className="flex flex-col items-center gap-0.5" style={{color:'#D4622A'}}><span className="text-xl">📋</span><span className="text-xs font-medium">記錄</span></Link>
+        <Link href="/scan" className="flex flex-col items-center gap-0.5" style={{color:'#B8A898'}}><span className="text-xl">📷</span><span className="text-xs">記帳</span></Link>
+        <Link href="/stats" className="flex flex-col items-center gap-0.5" style={{color:'#B8A898'}}><span className="text-xl">📊</span><span className="text-xs">統計</span></Link>
+        <Link href="/settings" className="flex flex-col items-center gap-0.5" style={{color:'#B8A898'}}><span className="text-xl">⚙️</span><span className="text-xs">設定</span></Link>
       </nav>
     </div>
   )

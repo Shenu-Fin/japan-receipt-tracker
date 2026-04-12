@@ -5,102 +5,93 @@ import Link from 'next/link'
 
 export default function ScanPage() {
   const router = useRouter()
-  const inputRef = useRef<HTMLInputElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   async function handleFile(file: File) {
-    setLoading(true)
-    setError('')
-    try {
-      const base64 = await new Promise<string>((res, rej) => {
-        const reader = new FileReader()
-        reader.onload = () => res((reader.result as string).split(',')[1])
-        reader.onerror = rej
-        reader.readAsDataURL(file)
-      })
-      const resp = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base64, mimeType: file.type })
-      })
-      const data = await resp.json()
-      if (data.error) throw new Error(data.error)
-      sessionStorage.setItem('scan-result', JSON.stringify(data))
-      router.push('/scan/confirm')
-    } catch (e: any) {
-      setError(e.message || '辨識失敗，請重試')
-      setLoading(false)
+    setLoading(true); setError('')
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      const b64 = (e.target?.result as string).split(',')[1]
+      try {
+        const res = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: b64, mimeType: file.type })
+        })
+        const data = await res.json()
+        if (data.error) { setError(data.error); setLoading(false); return }
+        sessionStorage.setItem('scan-result', JSON.stringify(data))
+        router.push('/scan/confirm')
+      } catch {
+        setError('辨識失敗，請重試'); setLoading(false)
+      }
     }
+    reader.readAsDataURL(file)
   }
 
   return (
     <div className="pb-24 px-4 pt-6">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/" className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm">←</Link>
-        <h1 className="text-xl font-bold">掃描收據</h1>
+        <Link href="/" className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-base" style={{border:'0.5px solid #EDE5D8',color:'#6B4C35'}}>←</Link>
+        <h1 className="text-xl font-bold" style={{color:'#2C1F14'}}>記帳</h1>
       </div>
 
-      {loading ? (
-        <div className="card text-center py-16">
-          <div className="text-5xl mb-4 animate-pulse">🤖</div>
-          <p className="font-medium text-lg">AI 辨識中...</p>
-          <p className="text-gray-400 text-sm mt-2">正在翻譯日文收據</p>
+      {/* 兩個大按鈕 */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={loading}
+          className="card flex flex-col items-center py-6 active:scale-95 transition-transform cursor-pointer"
+        >
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3" style={{background:'#FDF3EC'}}>📷</div>
+          <span className="font-semibold text-sm" style={{color:'#2C1F14'}}>掃描收據</span>
+          <span className="text-xs mt-0.5" style={{color:'#B8A898'}}>AI 自動辨識</span>
+        </button>
+        <Link href="/add" className="card flex flex-col items-center py-6 active:scale-95 transition-transform">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3" style={{background:'#E8F0FB'}}>✏️</div>
+          <span className="font-semibold text-sm" style={{color:'#2C1F14'}}>手動輸入</span>
+          <span className="text-xs mt-0.5" style={{color:'#B8A898'}}>沒有收據時</span>
+        </Link>
+      </div>
+
+      {loading && (
+        <div className="card text-center py-6 mb-4" style={{color:'#D4622A'}}>
+          <p className="text-lg mb-1">🤖</p>
+          <p className="font-medium">AI 辨識中...</p>
+          <p className="text-xs mt-1" style={{color:'#B8A898'}}>請稍候</p>
         </div>
-      ) : (
-        <>
-          <div
-            className="card flex flex-col items-center py-12 mb-4 cursor-pointer border-2 border-dashed border-orange-200 active:scale-95 transition-transform"
-            onClick={() => inputRef.current?.click()}
-          >
-            <span className="text-5xl mb-4">📷</span>
-            <p className="font-medium text-lg">拍照或選擇圖片</p>
-            <p className="text-gray-400 text-sm mt-1">支援 JPG、PNG 格式</p>
-          </div>
-
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
-          />
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-red-600 text-sm">
-              ⚠️ {error}
-            </div>
-          )}
-
-          <div className="card mb-4">
-            <p className="text-sm font-medium mb-2">📌 拍攝小技巧</p>
-            <ul className="text-sm text-gray-500 space-y-1">
-              <li>• 確保收據攤平，光線充足</li>
-              <li>• 拍完整，包含店名和合計金額</li>
-              <li>• 避免反光和模糊</li>
-            </ul>
-          </div>
-
-          <Link href="/add" className="btn-secondary text-center block">
-            沒有收據？手動輸入
-          </Link>
-        </>
       )}
 
+      {error && (
+        <div className="card mb-4 px-4 py-3" style={{background:'#FCEBEB',borderColor:'#F7C1C1'}}>
+          <p className="text-sm font-medium" style={{color:'#A32D2D'}}>⚠ {error}</p>
+        </div>
+      )}
+
+      {/* 拍攝小技巧 */}
+      <div className="card">
+        <p className="text-sm font-semibold mb-3" style={{color:'#2C1F14'}}>📌 拍攝小技巧</p>
+        <div className="space-y-2">
+          {['確保收據攤平，光線充足','拍完整，包含店名和合計金額','避免反光和模糊'].map((t,i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className="text-xs mt-0.5" style={{color:'#D4622A'}}>·</span>
+              <span className="text-sm" style={{color:'#6B4C35'}}>{t}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
+        onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+
       <nav className="nav-bar">
-        <Link href="/" className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏠</span><span className="text-xs mt-0.5">首頁</span>
-        </Link>
-        <Link href="/scan" className="flex flex-col items-center text-orange-500">
-          <span className="text-xl">📷</span><span className="text-xs mt-0.5">掃描</span>
-        </Link>
-        <Link href="/history" className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📋</span><span className="text-xs mt-0.5">記錄</span>
-        </Link>
-        <Link href="/stats" className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📊</span><span className="text-xs mt-0.5">統計</span>
-        </Link>
+        <Link href="/" className="flex flex-col items-center gap-0.5" style={{color:'#B8A898'}}><span className="text-xl">🏠</span><span className="text-xs">首頁</span></Link>
+        <Link href="/history" className="flex flex-col items-center gap-0.5" style={{color:'#B8A898'}}><span className="text-xl">📋</span><span className="text-xs">記錄</span></Link>
+        <Link href="/scan" className="flex flex-col items-center gap-0.5" style={{color:'#D4622A'}}><span className="text-xl">📷</span><span className="text-xs font-medium">記帳</span></Link>
+        <Link href="/stats" className="flex flex-col items-center gap-0.5" style={{color:'#B8A898'}}><span className="text-xl">📊</span><span className="text-xs">統計</span></Link>
+        <Link href="/settings" className="flex flex-col items-center gap-0.5" style={{color:'#B8A898'}}><span className="text-xl">⚙️</span><span className="text-xs">設定</span></Link>
       </nav>
     </div>
   )

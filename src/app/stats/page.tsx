@@ -1,190 +1,132 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { Receipt } from '@/lib/types'
+
+const COLORS = ['#D4622A','#5B8FD4','#5BAF6E','#B85BAF','#D4A62A','#5BAFAF','#8F5BD4','#D45B8F']
+
+function PieChart({ data }: { data: { label: string; value: number; color: string }[] }) {
+  const total = data.reduce((s, d) => s + d.value, 0)
+  if (total === 0) return <div className="w-24 h-24 rounded-full" style={{background:'#F5EDE3'}} />
+  let offset = 25
+  const slices = data.map(d => {
+    const pct = (d.value / total) * 100
+    const slice = { ...d, pct, offset }
+    offset -= pct
+    return slice
+  })
+  return (
+    <svg width="90" height="90" viewBox="0 0 36 36">
+      {slices.map((s, i) => (
+        <circle key={i} cx="18" cy="18" r="15.9" fill="none"
+          stroke={s.color} strokeWidth="3.2"
+          strokeDasharray={`${s.pct} ${100 - s.pct}`}
+          strokeDashoffset={s.offset} />
+      ))}
+      <circle cx="18" cy="18" r="10.5" fill="#FBF8F4" />
+    </svg>
+  )
+}
+
+const NAV = (active: string) => (
+  <nav className="nav-bar">
+    <Link href="/" className="flex flex-col items-center gap-0.5" style={{color: active==='home' ? '#D4622A' : '#B8A898'}}><span className="text-xl">🏠</span><span className="text-xs">首頁</span></Link>
+    <Link href="/history" className="flex flex-col items-center gap-0.5" style={{color: active==='history' ? '#D4622A' : '#B8A898'}}><span className="text-xl">📋</span><span className="text-xs">記錄</span></Link>
+    <Link href="/scan" className="flex flex-col items-center gap-0.5" style={{color: active==='scan' ? '#D4622A' : '#B8A898'}}><span className="text-xl">📷</span><span className="text-xs">記帳</span></Link>
+    <Link href="/stats" className="flex flex-col items-center gap-0.5" style={{color: active==='stats' ? '#D4622A' : '#B8A898'}}><span className="text-xl">📊</span><span className="text-xs font-medium">統計</span></Link>
+    <Link href="/settings" className="flex flex-col items-center gap-0.5" style={{color: active==='settings' ? '#D4622A' : '#B8A898'}}><span className="text-xl">⚙️</span><span className="text-xs">設定</span></Link>
+  </nav>
+)
+
+function Section({ title, data, labelKey }: { title: string; data: { label: string; value: number }[]; labelKey: string }) {
+  const total = data.reduce((s, d) => s + d.value, 0)
+  const colored = data.map((d, i) => ({ ...d, color: COLORS[i % COLORS.length], pct: total ? Math.round((d.value / total) * 100) : 0 }))
+
+  return (
+    <div className="card mb-3">
+      <p className="text-xs font-semibold mb-3" style={{color:'#B8A898',letterSpacing:'0.06em',textTransform:'uppercase'}}>{title}</p>
+      <div className="flex items-center gap-4 mb-4">
+        <PieChart data={colored} />
+        <div className="flex-1 space-y-1.5">
+          {colored.map((d, i) => (
+            <div key={i} className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background: d.color}} />
+                <span className="text-xs" style={{color:'#2C1F14'}}>{d.label}</span>
+              </div>
+              <span className="text-xs font-semibold" style={{color: d.color}}>{d.pct}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{borderTop:'0.5px solid #F5EDE3',paddingTop:'10px'}}>
+        <div className="grid grid-cols-4 gap-1 mb-2" style={{fontSize:'11px',color:'#B8A898'}}>
+          <span>#</span><span>{labelKey}</span><span className="text-right">金額</span><span className="text-right">比例</span>
+        </div>
+        {colored.map((d, i) => (
+          <div key={i} className="grid grid-cols-4 gap-1 py-2" style={{borderBottom: i < colored.length-1 ? '0.5px solid #F5F0EB' : 'none', fontSize:'13px'}}>
+            <span style={{color:'#B8A898',fontSize:'11px'}}>{i+1}</span>
+            <span className="font-medium" style={{color:'#2C1F14'}}>{d.label}</span>
+            <span className="text-right font-semibold" style={{color:'#D4622A'}}>¥{d.value.toLocaleString()}</span>
+            <span className="text-right font-semibold" style={{color: i===0 ? '#D4622A' : '#B8A898'}}>{d.pct}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function StatsPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [loading, setLoading] = useState(true)
-  const [filterUser, setFilterUser] = useState('')
   const [exchangeRate, setExchangeRate] = useState(0.21)
 
   useEffect(() => {
-    fetch('/api/notion').then(r => r.json()).then(data => {
-      setReceipts(Array.isArray(data) ? data : [])
-      setLoading(false)
-    }).catch(() => setLoading(false))
+    fetch('/api/notion').then(r => r.json()).then(d => { setReceipts(Array.isArray(d) ? d : []); setLoading(false) }).catch(() => setLoading(false))
     fetch('/api/exchange-rate').then(r => r.json()).then(d => setExchangeRate(d.rate || 0.21))
   }, [])
 
-  const data = filterUser ? receipts.filter(r => r.user === filterUser) : receipts
-  const totalJPY = data.reduce((s, r) => s + r.amountJPY, 0)
+  const totalJPY = receipts.reduce((s, r) => s + r.amountJPY, 0)
   const totalTWD = Math.round(totalJPY * exchangeRate)
 
   const byCat: Record<string, number> = {}
-  data.forEach(r => { byCat[r.category] = (byCat[r.category] || 0) + r.amountJPY })
-  const catList = Object.entries(byCat).sort((a, b) => b[1] - a[1])
-
-  const byRegion: Record<string, number> = {}
-  data.forEach(r => { byRegion[r.region] = (byRegion[r.region] || 0) + r.amountJPY })
-  const regionList = Object.entries(byRegion).sort((a, b) => b[1] - a[1])
+  receipts.forEach(r => { byCat[r.category] = (byCat[r.category] || 0) + r.amountJPY })
+  const catData = Object.entries(byCat).sort((a,b) => b[1]-a[1]).map(([label,value]) => ({label,value}))
 
   const byPay: Record<string, number> = {}
-  data.forEach(r => { byPay[r.paymentMethod] = (byPay[r.paymentMethod] || 0) + r.amountJPY })
-  const payList = Object.entries(byPay).sort((a, b) => b[1] - a[1])
+  receipts.forEach(r => { byPay[r.paymentMethod] = (byPay[r.paymentMethod] || 0) + r.amountJPY })
+  const payData = Object.entries(byPay).sort((a,b) => b[1]-a[1]).map(([label,value]) => ({label,value}))
 
   const byUser: Record<string, number> = {}
   receipts.forEach(r => { byUser[r.user] = (byUser[r.user] || 0) + r.amountJPY })
+  const userData = Object.entries(byUser).sort((a,b) => b[1]-a[1]).map(([label,value]) => ({label,value}))
 
-  const byDay: Record<string, number> = {}
-  data.forEach(r => { byDay[r.date] = (byDay[r.date] || 0) + r.amountJPY })
-  const dayList = Object.entries(byDay).sort((a, b) => a[0].localeCompare(b[0])).slice(-10)
-  const maxDay = Math.max(...dayList.map(d => d[1]), 1)
-
-  const catColors: Record<string, string> = {
-    '餐飲': '#F97316', '交通': '#3B82F6', '購物': '#EC4899',
-    '門票': '#8B5CF6', '住宿': '#10B981', '藥品': '#EF4444', '其他': '#9CA3AF'
-  }
-
-  if (loading) return <div className="p-8 text-center text-gray-400 pt-16">載入中...</div>
+  if (loading) return <div className="p-8 text-center pt-16" style={{color:'#B8A898'}}>載入中...</div>
 
   return (
     <div className="pb-24 px-4 pt-6">
-      <div className="flex items-center gap-3 mb-4">
-        <Link href="/" className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm">←</Link>
-        <h1 className="text-xl font-bold">統計分析</h1>
+      <h1 className="text-xl font-bold mb-4" style={{color:'#2C1F14'}}>統計分析</h1>
+
+      {/* Hero 總花費 */}
+      <div className="hero-card mb-4">
+        <p className="text-xs mb-1" style={{color:'rgba(255,255,255,0.7)'}}>旅程總花費</p>
+        <p className="text-4xl font-bold text-white" style={{letterSpacing:'-1px'}}>¥{totalJPY.toLocaleString()}</p>
+        <div className="flex justify-between items-center mt-3 rounded-xl px-3 py-2" style={{background:'rgba(255,255,255,0.18)'}}>
+          <span className="text-xs" style={{color:'rgba(255,255,255,0.8)'}}>換算台幣</span>
+          <span className="font-semibold text-white">NT${totalTWD.toLocaleString()}</span>
+        </div>
+        <p className="text-xs mt-2" style={{color:'rgba(255,255,255,0.6)'}}>即時匯率 ¥1 ≈ NT${exchangeRate.toFixed(4)}</p>
       </div>
 
-      {/* User filter */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-        <button onClick={() => setFilterUser('')} className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${!filterUser ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}>全員</button>
-        {Object.keys(byUser).map(u => (
-          <button key={u} onClick={() => setFilterUser(u === filterUser ? '' : u)} className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${filterUser === u ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}>{u}</button>
-        ))}
-      </div>
+      {catData.length > 0 && <Section title="支出類別比" data={catData} labelKey="類別" />}
+      {payData.length > 0 && <Section title="支出帳戶比" data={payData} labelKey="帳戶" />}
+      {userData.length > 0 && <Section title="支出成員比" data={userData} labelKey="成員" />}
 
-      {/* 總花費 — 日幣 + 台幣 都顯示 */}
-      <div className="card mb-4">
-        <p className="text-sm text-gray-500 mb-1">旅程總花費</p>
-        <p className="text-3xl font-bold text-orange-500">¥{totalJPY.toLocaleString()}</p>
-        <div className="flex items-center gap-2 mt-2 bg-orange-50 rounded-xl px-4 py-2">
-          <span className="text-sm text-orange-600">換算台幣</span>
-          <span className="text-2xl font-bold text-orange-600 ml-auto">NT${totalTWD.toLocaleString()}</span>
-        </div>
-        <p className="text-xs text-gray-400 mt-1">即時匯率 ¥1 ≈ NT${exchangeRate.toFixed(4)}</p>
-      </div>
-
-      {/* 統計數字 */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="card text-center">
-          <p className="text-xs text-gray-400">筆數</p>
-          <p className="text-2xl font-bold">{data.length}</p>
-        </div>
-        <div className="card text-center">
-          <p className="text-xs text-gray-400">平均每筆</p>
-          <p className="text-xl font-bold">¥{data.length ? Math.round(totalJPY / data.length).toLocaleString() : 0}</p>
-          <p className="text-xs text-gray-400">NT${data.length ? Math.round(totalTWD / data.length).toLocaleString() : 0}</p>
-        </div>
-      </div>
-
-      {/* Daily trend */}
-      {dayList.length > 0 && (
-        <div className="card mb-4">
-          <p className="font-medium mb-3">每日花費趨勢</p>
-          <div className="flex items-end gap-1 h-20">
-            {dayList.map(([date, amt]) => (
-              <div key={date} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full bg-orange-400 rounded-t" style={{ height: `${Math.round((amt / maxDay) * 64)}px` }} />
-                <span className="text-gray-400" style={{ fontSize: 9 }}>{date.slice(5)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+      {receipts.length === 0 && (
+        <div className="card text-center py-8" style={{color:'#B8A898'}}>還沒有記錄</div>
       )}
 
-      {/* Category breakdown */}
-      {catList.length > 0 && (
-        <div className="card mb-4">
-          <p className="font-medium mb-3">類別佔比</p>
-          <div className="space-y-2">
-            {catList.map(([cat, amt]) => (
-              <div key={cat}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>{cat}</span>
-                  <span className="font-medium">
-                    ¥{amt.toLocaleString()} · NT${Math.round(amt * exchangeRate).toLocaleString()} ({Math.round((amt / totalJPY) * 100)}%)
-                  </span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div className="h-2 rounded-full" style={{ width: `${(amt / totalJPY) * 100}%`, background: catColors[cat] || '#9CA3AF' }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Region */}
-      {regionList.length > 0 && (
-        <div className="card mb-4">
-          <p className="font-medium mb-3">地區分布</p>
-          <div className="space-y-2">
-            {regionList.map(([region, amt]) => (
-              <div key={region} className="flex justify-between items-center">
-                <span className="text-sm">{region}</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-20 bg-gray-100 rounded-full h-1.5">
-                    <div className="h-1.5 rounded-full bg-blue-400" style={{ width: `${(amt / totalJPY) * 100}%` }} />
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">¥{amt.toLocaleString()}</p>
-                    <p className="text-xs text-gray-400">NT${Math.round(amt * exchangeRate).toLocaleString()}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Payment */}
-      {payList.length > 0 && (
-        <div className="card mb-4">
-          <p className="font-medium mb-3">付款方式</p>
-          <div className="flex gap-2 flex-wrap">
-            {payList.map(([pay, amt]) => (
-              <div key={pay} className="bg-gray-50 rounded-xl px-3 py-2 text-center">
-                <p className="text-xs text-gray-400">{pay}</p>
-                <p className="font-medium text-sm">¥{amt.toLocaleString()}</p>
-                <p className="text-xs text-gray-400">NT${Math.round(amt * exchangeRate).toLocaleString()}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Per user */}
-      {Object.keys(byUser).length > 1 && (
-        <div className="card mb-4">
-          <p className="font-medium mb-3">各人花費</p>
-          {Object.entries(byUser).sort((a, b) => b[1] - a[1]).map(([user, amt]) => (
-            <div key={user} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
-              <span className="text-sm">{user}</span>
-              <div className="text-right">
-                <p className="font-medium">¥{amt.toLocaleString()}</p>
-                <p className="text-xs text-gray-400">NT${Math.round(amt * exchangeRate).toLocaleString()}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <nav className="nav-bar">
-        <Link href="/" className="flex flex-col items-center text-gray-400"><span className="text-xl">🏠</span><span className="text-xs mt-0.5">首頁</span></Link>
-        <Link href="/scan" className="flex flex-col items-center text-gray-400"><span className="text-xl">📷</span><span className="text-xs mt-0.5">掃描</span></Link>
-        <Link href="/history" className="flex flex-col items-center text-gray-400"><span className="text-xl">📋</span><span className="text-xs mt-0.5">記錄</span></Link>
-        <Link href="/stats" className="flex flex-col items-center text-orange-500"><span className="text-xl">📊</span><span className="text-xs mt-0.5">統計</span></Link>
-      </nav>
+      {NAV('stats')}
     </div>
   )
 }
