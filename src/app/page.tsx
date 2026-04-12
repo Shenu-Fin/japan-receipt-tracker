@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Receipt } from '@/lib/types'
 
@@ -7,15 +7,15 @@ const TRIP_START = new Date('2026-06-02')
 const TRIP_END = new Date('2026-06-06')
 const TRIP_DAYS = 5
 
-const CAT_COLOR: Record<string, string> = {
-  '餐飲': 'background:#FDF3E3;color:#9A6020',
-  '交通': 'background:#E8F0FB;color:#2E5BA8',
-  '住宿': 'background:#EAF3DE;color:#3B6D11',
-  '購物': 'background:#FBEAF0;color:#9C2A5A',
-  '門票': 'background:#F0EDFB;color:#5B3DB8',
-  '景點': 'background:#F0EDFB;color:#5B3DB8',
-  '藥品': 'background:#FCEBEB;color:#A32D2D',
-  '其他': 'background:#F5F0EB;color:#6B4C35',
+const CAT_COLOR: Record<string, React.CSSProperties> = {
+  '餐飲':{background:'#FDF3E3',color:'#9A6020'},
+  '交通':{background:'#E8F0FB',color:'#2E5BA8'},
+  '住宿':{background:'#EAF3DE',color:'#3B6D11'},
+  '購物':{background:'#FBEAF0',color:'#9C2A5A'},
+  '門票':{background:'#F0EDFB',color:'#5B3DB8'},
+  '景點':{background:'#F0EDFB',color:'#5B3DB8'},
+  '藥品':{background:'#FCEBEB',color:'#A32D2D'},
+  '其他':{background:'#F5F0EB',color:'#6B4C35'},
 }
 
 export default function Dashboard() {
