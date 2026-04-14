@@ -9,7 +9,7 @@ const TRIP_DAYS = 5
 
 const CAT_COLOR: Record<string, React.CSSProperties> = {
   '餐飲':{background:'#FDF3E3',color:'#9A6020'},
-  '交通':{background:'#E8F0FB',color:'#2E5BA8'},
+  '交通':{background:'#E8F0FB',color:'#1A7A77'},
   '住宿':{background:'#EAF3DE',color:'#3B6D11'},
   '購物':{background:'#FBEAF0',color:'#9C2A5A'},
   '門票':{background:'#F0EDFB',color:'#5B3DB8'},
@@ -19,7 +19,7 @@ const CAT_COLOR: Record<string, React.CSSProperties> = {
 }
 
 const NAV_ACTIVE = '#00A86B'
-const NAV_INACTIVE = '#8FA8CC'
+const NAV_INACTIVE = '#8BBAB8'
 
 export default function Dashboard() {
   const [receipts, setReceipts] = useState<Receipt[]>([])
@@ -57,36 +57,34 @@ export default function Dashboard() {
   return (
     <div className="pb-24 px-4 pt-6">
       <div className="mb-5">
-        <h1 className="text-2xl font-bold" style={{color:'#333333'}}>日本旅行記帳</h1>
-        <p className="text-sm mt-0.5" style={{color:'#8FA8CC'}} suppressHydrationWarning>
+        <h1 className="text-2xl font-bold" style={{color:'#455A64'}}>日本旅行記帳</h1>
+        <p className="text-sm mt-0.5" style={{color:'#8BBAB8'}} suppressHydrationWarning>
           {new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'short' })}
         </p>
       </div>
 
-      {/* Hero 今日花費 + 旅程累計 */}
+      {/* Hero 大卡片：今日花費 + 旅程累計 在同一張 */}
       <div className="hero-card mb-3">
-        <p className="text-xs mb-1" style={{color:'rgba(255,255,255,0.75)'}}>今日花費</p>
+        <p className="text-xs mb-1" style={{color:'rgba(255,255,255,0.7)'}}>今日花費</p>
         <p className="text-4xl font-bold text-white" style={{letterSpacing:'-1px'}}>¥{todayTotal.toLocaleString()}</p>
-        <p className="text-sm mt-0.5" style={{color:'rgba(255,255,255,0.75)'}}>≈ NT${Math.round(todayTotal * exchangeRate).toLocaleString()}</p>
-        <div className="flex justify-between items-center mt-3 rounded-xl px-3 py-2" style={{background:'rgba(255,255,255,0.18)'}}>
-          <span className="text-xs" style={{color:'rgba(255,255,255,0.8)'}}>旅程累計</span>
-          <div className="text-right">
-            <span className="font-bold text-white text-sm">¥{totalJPY.toLocaleString()}</span>
-            <span className="text-xs ml-2" style={{color:'rgba(255,255,255,0.75)'}}>NT${totalTWD.toLocaleString()}</span>
+        <p className="text-sm mt-0.5 mb-4" style={{color:'rgba(255,255,255,0.7)'}}>≈ NT${Math.round(todayTotal * exchangeRate).toLocaleString()}</p>
+
+        <div style={{borderTop:'1px solid rgba(255,255,255,0.2)',paddingTop:'12px'}}>
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-xs mb-0.5" style={{color:'rgba(255,255,255,0.7)'}}>旅程累計</p>
+              <p className="text-xl font-bold text-white">¥{totalJPY.toLocaleString()}</p>
+              <p className="text-xs mt-0.5" style={{color:'rgba(255,255,255,0.7)'}}>NT${totalTWD.toLocaleString()}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs mb-1" style={{color:'rgba(255,255,255,0.7)'}}>旅程進度 {tripPct}%</p>
+              <div className="w-24 rounded-full h-1.5" style={{background:'rgba(255,255,255,0.25)'}}>
+                <div className="h-1.5 rounded-full" style={{width:`${tripPct}%`,background:'white'}} />
+              </div>
+              <p className="text-xs mt-1" style={{color:'rgba(255,255,255,0.6)'}}>{tripLabel}</p>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* 旅程進度卡片（單獨一行） */}
-      <div className="card mb-5">
-        <div className="flex justify-between items-center mb-2">
-          <p className="text-xs" style={{color:'#8FA8CC'}}>旅程進度</p>
-          <p className="text-sm font-bold" style={{color:'#333333'}}>{tripPct}%</p>
-        </div>
-        <div className="w-full rounded-full h-1.5" style={{background:'#E4ECFF'}}>
-          <div className="h-1.5 rounded-full transition-all" style={{width:`${tripPct}%`, background:'#00A86B'}} />
-        </div>
-        <p className="text-xs mt-1.5" style={{color:'#8FA8CC'}}>{tripLabel}</p>
       </div>
 
       {/* 最近記錄 */}
@@ -96,9 +94,9 @@ export default function Dashboard() {
       </div>
 
       {loading ? (
-        <div className="card text-center py-8" style={{color:'#8FA8CC'}}>載入中...</div>
+        <div className="card text-center py-8" style={{color:'#8BBAB8'}}>載入中...</div>
       ) : recent.length === 0 ? (
-        <div className="card text-center py-8" style={{color:'#8FA8CC'}}>
+        <div className="card text-center py-8" style={{color:'#8BBAB8'}}>
           <p className="text-2xl mb-2">🧾</p>
           <p>還沒有記錄，掃描第一張收據吧！</p>
         </div>
@@ -107,14 +105,14 @@ export default function Dashboard() {
           {recent.map((r, i) => (
             <div key={r.id||i} className="card flex justify-between items-center">
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate" style={{color:'#333333'}}>{r.items || r.storeName}</p>
+                <p className="font-semibold text-sm truncate" style={{color:'#455A64'}}>{r.items || r.storeName}</p>
                 <div className="flex items-center gap-1.5 mt-1">
-                  <span className="text-xs" style={{color:'#8FA8CC'}}>{r.date}</span>
+                  <span className="text-xs" style={{color:'#8BBAB8'}}>{r.date}</span>
                   <span className="tag" style={CAT_COLOR[r.category] || CAT_COLOR['其他']}>{r.category}</span>
                 </div>
               </div>
               <div className="text-right ml-3">
-                <p className="font-bold text-sm" style={{color:'#333333'}}>¥{r.amountJPY.toLocaleString()}</p>
+                <p className="font-bold text-sm" style={{color:'#455A64'}}>¥{r.amountJPY.toLocaleString()}</p>
                 <p className="text-xs mt-0.5" style={{color:'#00A86B'}}>NT${Math.round(r.amountJPY * exchangeRate).toLocaleString()}</p>
               </div>
             </div>

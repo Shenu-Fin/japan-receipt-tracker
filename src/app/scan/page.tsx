@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 const NA = '#00A86B'
-const NI = '#8FA8CC'
+const NI = '#8BBAB8'
 
 export default function ScanPage() {
   const router = useRouter()
@@ -37,29 +37,29 @@ export default function ScanPage() {
   return (
     <div className="pb-24 px-4 pt-6">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/" className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-base" style={{border:'0.5px solid #E4ECFF',color:'#333333'}}>←</Link>
-        <h1 className="text-xl font-bold" style={{color:'#333333'}}>記帳</h1>
+        <Link href="/" className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-base" style={{border:'0.5px solid #D4E6E4',color:'#455A64'}}>←</Link>
+        <h1 className="text-xl font-bold" style={{color:'#455A64'}}>記帳</h1>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <button onClick={() => fileRef.current?.click()} disabled={loading}
           className="card flex flex-col items-center py-6 active:scale-95 transition-transform cursor-pointer">
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3" style={{background:'#E8F7F1'}}>📷</div>
-          <span className="font-semibold text-sm" style={{color:'#333333'}}>掃描收據</span>
-          <span className="text-xs mt-0.5" style={{color:'#8FA8CC'}}>AI 自動辨識</span>
+          <span className="font-semibold text-sm" style={{color:'#455A64'}}>掃描收據</span>
+          <span className="text-xs mt-0.5" style={{color:'#8BBAB8'}}>AI 自動辨識</span>
         </button>
         <Link href="/add" className="card flex flex-col items-center py-6 active:scale-95 transition-transform">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3" style={{background:'#EAF0FF'}}>✏️</div>
-          <span className="font-semibold text-sm" style={{color:'#333333'}}>手動輸入</span>
-          <span className="text-xs mt-0.5" style={{color:'#8FA8CC'}}>沒有收據時</span>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3" style={{background:'#E0F2F1'}}>✏️</div>
+          <span className="font-semibold text-sm" style={{color:'#455A64'}}>手動輸入</span>
+          <span className="text-xs mt-0.5" style={{color:'#8BBAB8'}}>沒有收據時</span>
         </Link>
       </div>
 
       {loading && (
-        <div className="card text-center py-6 mb-4" style={{color:'#4785FF'}}>
+        <div className="card text-center py-6 mb-4" style={{color:'#20B2AA'}}>
           <p className="text-lg mb-1">🤖</p>
           <p className="font-medium">AI 辨識中...</p>
-          <p className="text-xs mt-1" style={{color:'#8FA8CC'}}>請稍候</p>
+          <p className="text-xs mt-1" style={{color:'#8BBAB8'}}>請稍候</p>
         </div>
       )}
 
@@ -70,7 +70,7 @@ export default function ScanPage() {
       )}
 
       <div className="card">
-        <p className="text-sm font-semibold mb-3" style={{color:'#333333'}}>📌 拍攝小技巧</p>
+        <p className="text-sm font-semibold mb-3" style={{color:'#455A64'}}>📌 拍攝小技巧</p>
         <div className="space-y-2">
           {['確保收據攤平，光線充足','拍完整，包含店名和合計金額','避免反光和模糊'].map((t,i) => (
             <div key={i} className="flex items-start gap-2">
