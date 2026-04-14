@@ -124,19 +124,19 @@ export default function Dashboard() {
       )}
 
       <nav className="nav-bar">
-        <Link href="/" className="flex flex-col items-center gap-0.5" style={{color:'#87A96B'}}>
+        <Link href="/" className="flex flex-col items-center gap-0.5" style={{color:'#00A86B'}}>
           <span className="text-xl">🏠</span><span className="text-xs font-medium">首頁</span>
         </Link>
-        <Link href="/history" className="flex flex-col items-center gap-0.5" style={{color:'#A89880'}}>
+        <Link href="/history" className="flex flex-col items-center gap-0.5" style={{color:'#8AA5BE'}}>
           <span className="text-xl">📋</span><span className="text-xs">記錄</span>
         </Link>
-        <Link href="/scan" className="flex flex-col items-center gap-0.5" style={{color:'#A89880'}}>
+        <Link href="/scan" className="flex flex-col items-center gap-0.5" style={{color:'#8AA5BE'}}>
           <span className="text-xl">📷</span><span className="text-xs">記帳</span>
         </Link>
-        <Link href="/stats" className="flex flex-col items-center gap-0.5" style={{color:'#A89880'}}>
+        <Link href="/stats" className="flex flex-col items-center gap-0.5" style={{color:'#8AA5BE'}}>
           <span className="text-xl">📊</span><span className="text-xs">統計</span>
         </Link>
-        <Link href="/settings" className="flex flex-col items-center gap-0.5" style={{color:'#A89880'}}>
+        <Link href="/settings" className="flex flex-col items-center gap-0.5" style={{color:'#8AA5BE'}}>
           <span className="text-xl">⚙️</span><span className="text-xs">設定</span>
         </Link>
       </nav>

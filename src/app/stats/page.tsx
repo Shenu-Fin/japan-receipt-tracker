@@ -64,7 +64,7 @@ function Section({ title, data, labelKey }: { title: string; data: { label: stri
           <span>#</span><span>{labelKey}</span><span className="text-right">金額</span><span className="text-right">比例</span>
         </div>
         {colored.map((d, i) => (
-          <div key={i} className="grid grid-cols-4 gap-1 py-2" style={{borderBottom: i < colored.length-1 ? '0.5px solid #F5F0EB' : 'none', fontSize:'13px'}}>
+          <div key={i} className="grid grid-cols-4 gap-1 py-2" style={{borderBottom: i < colored.length-1 ? '0.5px solid #EEF3F8' : 'none', fontSize:'13px'}}>
             <span style={{color:'#A89880',fontSize:'11px'}}>{i+1}</span>
             <span className="font-medium" style={{color:'#2C2416'}}>{d.label}</span>
             <span className="text-right font-semibold" style={{color:'#87A96B'}}>¥{d.value.toLocaleString()}</span>

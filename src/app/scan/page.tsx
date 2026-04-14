@@ -50,7 +50,7 @@ export default function ScanPage() {
           <span className="text-xs mt-0.5" style={{color:'#A89880'}}>AI 自動辨識</span>
         </button>
         <Link href="/add" className="card flex flex-col items-center py-6 active:scale-95 transition-transform">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3" style={{background:'#E8F0FB'}}>✏️</div>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3" style={{background:'#EAF4FF'}}>✏️</div>
           <span className="font-semibold text-sm" style={{color:'#2C2416'}}>手動輸入</span>
           <span className="text-xs mt-0.5" style={{color:'#A89880'}}>沒有收據時</span>
         </Link>
