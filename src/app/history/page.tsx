@@ -103,7 +103,7 @@ export default function HistoryPage() {
       <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
         {CATS.map(c=>(
           <button key={c} onClick={()=>setCat(c)} className="px-3 py-1.5 rounded-full text-sm whitespace-nowrap flex-shrink-0 font-medium"
-            style={cat===c?{background:'#1A1A1A',color:'white'}:{background:'white',color:'#5C4F44',border:'1px solid #EDE7DD'}}>
+            style={cat===c?{background:'#112240',color:'white'}:{background:'white',color:'#5C4F44',border:'1px solid #EDE7DD'}}>
             {c}
           </button>
         ))}
