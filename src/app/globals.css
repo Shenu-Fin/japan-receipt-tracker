@@ -3,19 +3,19 @@
 @tailwind utilities;
 
 :root {
-  --accent: #D4622A;
-  --accent-light: #FDF3EC;
-  --bg: #FBF8F4;
-  --card-border: #EDE5D8;
-  --text-primary: #2C1F14;
-  --text-muted: #B8A898;
+  --bg: #F9F7F2;
+  --card-border: #E8E2D9;
+  --accent: #87A96B;
+  --accent-warm: #C17F73;
+  --text-primary: #2C2417;
+  --text-muted: #A89880;
 }
 
 html { font-size: 16px; }
 
 body {
-  background: #FBF8F4;
-  color: #2C1F14;
+  background: #F9F7F2;
+  color: #2C2417;
   font-family: -apple-system, 'SF Pro Rounded', 'Hiragino Sans GB', 'Hiragino Maru Gothic ProN', 'Noto Sans TC', sans-serif;
   max-width: 480px;
   margin: 0 auto;
@@ -25,40 +25,40 @@ body {
 
 .btn-primary {
   @apply text-white rounded-2xl px-6 py-3.5 font-semibold text-base w-full active:scale-95 transition-transform;
-  background: #D4622A;
+  background: #87A96B;
 }
 
 .btn-secondary {
-  @apply bg-white border text-gray-700 rounded-2xl px-6 py-3.5 font-medium text-base w-full active:scale-95 transition-transform;
-  border-color: #EDE5D8;
-  color: #6B4C35;
+  @apply bg-white rounded-2xl px-6 py-3.5 font-medium text-base w-full active:scale-95 transition-transform;
+  border: 0.5px solid #E8E2D9;
+  color: #5C4A38;
 }
 
 .card {
   background: white;
   border-radius: 16px;
   padding: 14px 16px;
-  border: 0.5px solid #EDE5D8;
+  border: 0.5px solid #E8E2D9;
 }
 
 .input-field {
   @apply w-full rounded-2xl px-4 py-3 text-base focus:outline-none bg-white;
-  border: 1px solid #EDE5D8;
-  color: #2C1F14;
+  border: 1px solid #E8E2D9;
+  color: #2C2417;
 }
-.input-field:focus { border-color: #D4622A; }
+.input-field:focus { border-color: #87A96B; }
 
 .select-field {
   @apply w-full rounded-2xl px-4 py-3 text-base focus:outline-none bg-white;
-  border: 1px solid #EDE5D8;
-  color: #2C1F14;
+  border: 1px solid #E8E2D9;
+  color: #2C2417;
 }
-.select-field:focus { border-color: #D4622A; }
+.select-field:focus { border-color: #87A96B; }
 
 .nav-bar {
   @apply fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl flex justify-around items-center py-2 z-50;
   background: white;
-  border-top: 0.5px solid #EDE5D8;
+  border-top: 0.5px solid #E8E2D9;
 }
 
 .tag {
@@ -70,7 +70,7 @@ body {
 }
 
 .hero-card {
-  background: #D4622A;
+  background: #87A96B;
   border-radius: 20px;
   padding: 18px;
 }
@@ -78,7 +78,7 @@ body {
 .section-title {
   font-size: 11px;
   font-weight: 600;
-  color: #B8A898;
+  color: #A89880;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin: 14px 0 8px;

@@ -79,7 +79,7 @@ export default function ConfirmPage() {
         <h1 className="text-xl font-bold">確認辨識結果</h1>
       </div>
 
-      <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-4 text-sm text-orange-700">
+      <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-sm text-green-700">
         🤖 AI 已辨識完成，請確認後儲存
       </div>
 
