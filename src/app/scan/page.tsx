@@ -18,7 +18,7 @@ export default function ScanPage() {
         const res = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: b64, mimeType: file.type })
+          body: JSON.stringify({ base64: b64, mimeType: file.type })
         })
         const data = await res.json()
         if (data.error) { setError(data.error); setLoading(false); return }

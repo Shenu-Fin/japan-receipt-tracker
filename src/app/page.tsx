@@ -63,10 +63,14 @@ export default function Dashboard() {
       {/* Hero 今日花費 */}
       <div className="hero-card mb-3">
         <p className="text-xs mb-1" style={{color:'rgba(255,255,255,0.7)'}}>今日花費</p>
-        <p className="text-4xl font-bold text-white" style={{letterSpacing:'-1px'}}>¥{todayTotal.toLocaleString()}</p>
+        <p className="text-4xl font-bold text-white" style={{letterSpacing:'-1px'}}>NT${Math.round(todayTotal * exchangeRate).toLocaleString()}</p>
+        <p className="text-sm text-white mt-0.5" style={{color:'rgba(255,255,255,0.75)'}}>¥{todayTotal.toLocaleString()}</p>
         <div className="flex justify-between items-center mt-3 rounded-xl px-3 py-2" style={{background:'rgba(255,255,255,0.18)'}}>
           <span className="text-xs" style={{color:'rgba(255,255,255,0.8)'}}>旅程累計</span>
-          <span className="font-semibold text-white text-sm">NT${totalTWD.toLocaleString()}</span>
+          <div className="text-right">
+            <span className="font-semibold text-white text-sm">¥{totalJPY.toLocaleString()}</span>
+            <span className="text-xs ml-2" style={{color:'rgba(255,255,255,0.7)'}}>NT${totalTWD.toLocaleString()}</span>
+          </div>
         </div>
       </div>
 
