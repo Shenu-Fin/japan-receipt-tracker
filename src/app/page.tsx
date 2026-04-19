@@ -110,7 +110,7 @@ export default function Dashboard() {
               </div>
               <div className="text-right ml-3 flex-shrink-0">
                 <p className="font-bold text-sm" style={{color:'#1A1A1A'}}>¥{r.amountJPY.toLocaleString()}</p>
-                <p className="text-xs mt-0.5 gold">NT${Math.round(r.amountJPY*exchangeRate).toLocaleString()}</p>
+                <p className="text-xs mt-0.5" style={{color:'#1A1A1A'}}>NT${Math.round(r.amountJPY*exchangeRate).toLocaleString()}</p>
               </div>
             </div>
           ))}

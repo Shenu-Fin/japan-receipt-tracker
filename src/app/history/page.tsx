@@ -135,7 +135,7 @@ export default function HistoryPage() {
                 </div>
                 <div className="text-right ml-3">
                   <p className="font-bold text-sm" style={{color:'#1A1A1A'}}>¥{r.amountJPY.toLocaleString()}</p>
-                  <p className="text-xs mt-0.5 gold">NT${Math.round(r.amountJPY*exchangeRate).toLocaleString()}</p>
+                  <p className="text-xs mt-0.5" style={{color:'#1A1A1A'}}>NT${Math.round(r.amountJPY*exchangeRate).toLocaleString()}</p>
                 </div>
               </div>
               <div className="flex gap-2 pt-2.5" style={{borderTop:'1px solid #F3EDE6'}}>

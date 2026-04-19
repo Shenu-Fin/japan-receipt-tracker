@@ -47,8 +47,8 @@ function Section({title,data,labelKey}:{title:string;data:{label:string;value:nu
           <div key={i} className="grid grid-cols-4 gap-1 py-2" style={{borderBottom:i<colored.length-1?'1px solid #F3EDE6':'none',fontSize:13}}>
             <span style={{color:MU,fontSize:11}}>{i+1}</span>
             <span className="font-medium" style={{color:'#1A1A1A'}}>{d.label}</span>
-            <span className="text-right font-bold" style={{color:d.color}}>¥{d.value.toLocaleString()}</span>
-            <span className="text-right font-semibold" style={{color:i===0?d.color:MU}}>{d.pct}%</span>
+            <span className="text-right font-bold" style={{color:'#1A1A1A'}}>¥{d.value.toLocaleString()}</span>
+            <span className="text-right font-semibold" style={{color:'#1A1A1A'}}>{d.pct}%</span>
           </div>
         ))}
       </div>
