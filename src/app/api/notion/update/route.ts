@@ -14,3 +14,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { id } = await req.json()
+    await deleteReceipt(id)
+    return NextResponse.json({ ok: true })
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 })
+  }
+}
