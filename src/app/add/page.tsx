@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Receipt, CATEGORIES, PAYMENT_METHODS, REGIONS } from '@/lib/types'
 import { getSettings } from '@/lib/settings'
@@ -16,16 +16,28 @@ const blank = (): Partial<Receipt> => {
   }
 }
 
-export default function AddPage() {
+function AddForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const editId = searchParams.get('edit')
   const [form, setForm] = useState<Partial<Receipt>>(blank())
   const [saving, setSaving] = useState(false)
+  const [isEdit, setIsEdit] = useState(false)
   const settings = getSettings()
+
+  useEffect(() => {
+    if (!editId) return
+    setIsEdit(true)
+    fetch('/api/notion').then(r => r.json()).then((data: Receipt[]) => {
+      const found = data.find(r => r.id === editId)
+      if (found) setForm(found)
+    })
+  }, [editId])
 
   function update(key: keyof Receipt, val: any) {
     setForm(f => {
       const next = { ...f, [key]: val }
-      if (key === 'amountJPY') next.amountTWD = Math.round(Number(val) * settings.exchangeRate)
+      if (key === 'amountJPY') next.amountTWD = Math.round(Number(val) * (settings.exchangeRate || 0.21))
       return next
     })
   }
@@ -35,13 +47,22 @@ export default function AddPage() {
     if (!form.amountJPY) return alert('請填入金額')
     setSaving(true)
     try {
-      const res = await fetch('/api/notion', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      })
-      if (!res.ok) throw new Error('儲存失敗')
-      router.push('/')
+      if (isEdit && editId) {
+        const res = await fetch('/api/notion/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editId, data: form })
+        })
+        if (!res.ok) throw new Error('更新失敗')
+      } else {
+        const res = await fetch('/api/notion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form)
+        })
+        if (!res.ok) throw new Error('儲存失敗')
+      }
+      router.push('/history')
     } catch (e: any) {
       alert(e.message)
       setSaving(false)
@@ -51,8 +72,8 @@ export default function AddPage() {
   return (
     <div className="pb-28 px-4 pt-6">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/" className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm">←</Link>
-        <h1 className="text-xl font-bold">手動新增</h1>
+        <Link href="/history" className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm">←</Link>
+        <h1 className="text-xl font-bold">{isEdit ? '編輯記錄' : '手動新增'}</h1>
       </div>
 
       <div className="space-y-3">
@@ -120,9 +141,17 @@ export default function AddPage() {
 
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl p-4 bg-white border-t border-gray-100">
         <button onClick={save} disabled={saving} className="btn-primary">
-          {saving ? '儲存中...' : '✅ 儲存到 Notion'}
+          {saving ? '儲存中...' : isEdit ? '✅ 更新記錄' : '✅ 儲存到 Notion'}
         </button>
       </div>
     </div>
+  )
+}
+
+export default function AddPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">載入中...</div>}>
+      <AddForm />
+    </Suspense>
   )
 }
