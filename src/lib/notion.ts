@@ -86,4 +86,81 @@ export async function getReceipts(): Promise<Receipt[]> {
         amountTWD: p['台幣花費']?.number || 0,
         taxType: p['稅制']?.rich_text?.[0]?.plain_text || '',
         category: categoryName,
-        paymentMethod: p['支付方式']?.rich_text?.[0]?.plain_
+        paymentMethod: p['支付方式']?.rich_text?.[0]?.plain_text || '現金',
+        date: p['消費日期']?.date?.start || '',
+        region: p['地區']?.rich_text?.[0]?.plain_text || '',
+        user: p['付款人']?.rich_text?.[0]?.plain_text || '',
+        note: p['稅制']?.rich_text?.[0]?.plain_text || ''
+      })
+    }
+
+    cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined
+  } while (cursor)
+
+  cache = { data: results, ts: Date.now() }
+  return results
+}
+
+export function invalidateCache() {
+  cache = null
+}
+
+export async function addReceipt(r: Receipt) {
+  invalidateCache()
+  const { nameToId } = await getCategoryMaps()
+  const categoryPageId = nameToId[r.category]
+
+  const props: Record<string, any> = {
+    '支出項目': { title: [{ text: { content: (r as any).shortTitle || r.storeName || r.items || '' } }] },
+    '支出金額': { number: r.amountJPY },
+    '消費日期': { date: { start: r.date } },
+    '付款人':   { rich_text: [{ text: { content: r.user } }] },
+    '商品中文': { rich_text: [{ text: { content: r.items } }] },
+    '商品日文': { rich_text: [{ text: { content: r.itemsJa } }] },
+    '商店名稱': { rich_text: [{ text: { content: r.storeName } }] },
+    '商店日文': { rich_text: [{ text: { content: r.storeNameJa } }] },
+    '地區':     { rich_text: [{ text: { content: r.region } }] },
+    '支付方式': { rich_text: [{ text: { content: r.paymentMethod } }] },
+    '稅制':     { rich_text: [{ text: { content: r.taxType } }] },
+    '台幣花費': { number: r.amountTWD },
+  }
+
+  if (categoryPageId) {
+    props['類別'] = { relation: [{ id: categoryPageId }] }
+  }
+
+  return (notion as any).pages.create({
+    parent: { database_id: DB },
+    properties: props
+  })
+}
+
+export async function updateReceipt(id: string, r: Partial<Receipt>) {
+  invalidateCache()
+  const { nameToId } = await getCategoryMaps()
+  const props: Record<string, any> = {}
+
+  if (r.items || r.storeName) props['支出項目'] = { title: [{ text: { content: r.items || r.storeName } }] }
+  if (r.amountJPY)     props['支出金額'] = { number: r.amountJPY }
+  if (r.amountTWD)     props['台幣花費'] = { number: r.amountTWD }
+  if (r.date)          props['消費日期'] = { date: { start: r.date } }
+  if (r.user)          props['付款人']   = { rich_text: [{ text: { content: r.user } }] }
+  if (r.items)         props['商品中文'] = { rich_text: [{ text: { content: r.items } }] }
+  if (r.itemsJa)       props['商品日文'] = { rich_text: [{ text: { content: r.itemsJa } }] }
+  if (r.storeName)     props['商店名稱'] = { rich_text: [{ text: { content: r.storeName } }] }
+  if (r.storeNameJa)   props['商店日文'] = { rich_text: [{ text: { content: r.storeNameJa } }] }
+  if (r.region)        props['地區']     = { rich_text: [{ text: { content: r.region } }] }
+  if (r.paymentMethod) props['支付方式'] = { rich_text: [{ text: { content: r.paymentMethod } }] }
+  if (r.taxType)       props['稅制']     = { rich_text: [{ text: { content: r.taxType } }] }
+  if (r.category) {
+    const pageId = nameToId[r.category]
+    if (pageId) props['類別'] = { relation: [{ id: pageId }] }
+  }
+
+  return (notion as any).pages.update({ page_id: id, properties: props })
+}
+
+export async function deleteReceipt(id: string) {
+  invalidateCache()
+  return (notion as any).pages.update({ page_id: id, archived: true })
+}
