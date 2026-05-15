@@ -9,21 +9,44 @@ export default function ScanPage() {
   const router=useRouter(), fileRef=useRef<HTMLInputElement>(null)
   const [loading,setLoading]=useState(false), [error,setError]=useState('')
 
-  async function handleFile(file:File) {
-    setLoading(true); setError('')
-    const reader=new FileReader()
-    reader.onload=async(e)=>{
-      const b64=(e.target?.result as string).split(',')[1]
-      try {
-        const res=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:b64,mimeType:file.type})})
-        const data=await res.json()
-        if(data.error){setError(data.error);setLoading(false);return}
-        sessionStorage.setItem('scan-result',JSON.stringify(data))
-        router.push('/scan/confirm')
-      } catch{setError('辨識失敗，請重試');setLoading(false)}
+async function handleFile(file: File) {
+  setLoading(true); setError('')
+
+  // 壓縮圖片到 1MB 以內
+  const compress = (f: File): Promise<string> => new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(f)
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const MAX = 1200
+      let w = img.width, h = img.height
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX }
+        else { w = Math.round(w * MAX / h); h = MAX }
+      }
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      URL.revokeObjectURL(url)
+      resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1])
     }
-    reader.readAsDataURL(file)
+    img.src = url
+  })
+
+  try {
+    const b64 = await compress(file)
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base64: b64, mimeType: 'image/jpeg' })
+    })
+    const data = await res.json()
+    if (data.error) { setError(data.error); setLoading(false); return }
+    sessionStorage.setItem('scan-result', JSON.stringify(data))
+    router.push('/scan/confirm')
+  } catch {
+    setError('辨識失敗，請重試'); setLoading(false)
   }
+}
 
   const navItems=[
     {href:'/',icon:'🏠',label:'首頁',active:false},
