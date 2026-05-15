@@ -85,7 +85,7 @@ export async function getReceipts(): Promise<Receipt[]> {
         amountJPY: p['支出金額']?.number || 0,
         amountTWD: p['台幣花費']?.number || 0,
         taxType: p['稅制']?.rich_text?.[0]?.plain_text || '',
-        category: categoryName,
+        category: categoryName as any,
         paymentMethod: p['支付方式']?.rich_text?.[0]?.plain_text || '現金',
         date: p['消費日期']?.date?.start || '',
         region: p['地區']?.rich_text?.[0]?.plain_text || '',
